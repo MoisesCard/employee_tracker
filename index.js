@@ -1,7 +1,11 @@
 
 const mysql = require("mysql2");
 const table = require("console.table");
-const inquirer = require ("inquirer")
+const inquirer = require ("inquirer");
+const { tmpNameSync } = require("tmp");
+//name and roles for update employee
+const names = [];
+const roles = [];
 equire("dotenv").config()
 
 const db = mysql.createConnection({
@@ -32,7 +36,7 @@ const promptUser = () => {
                 "Add a department",
                 "Add an employee",
                 "Add Role",
-                "Update an empoyee role",
+                "Update an employee role",
                 "Quit",
             ],
         },
@@ -58,9 +62,9 @@ const promptUser = () => {
             case "Add an employee":
                 addEmployee()
                 break;
-            // case "Update an employee role":
-            //     updateRole()
-            //     break;
+            case "Update an employee role":
+                updateRole()
+                break;
             case "Quit":
                 db.end()
         }
@@ -85,7 +89,7 @@ const viewAllRoles = () => {
         promptUser();
     })
 }
-//viewds all employees
+//views all employees from employee table
 const viewAllEmployees = () => {
     db.query("SELECT first_name, last_name FROM employees", (err, res) => {
         if (err)
@@ -119,7 +123,7 @@ const addDepartment = () => {
 const addRole = () => {
     db.query("SELECT * FROM department", (err, res) => {
         if (err)
-            throw err;
+        throw err;
 
         inquirer.prompt([
             {
@@ -148,7 +152,7 @@ const addRole = () => {
             }, 
             err => {
                 if (err) 
-                    throw err;
+                throw err;
 
             console.log("Role successfully added. Select 'view all roles' to see addition")
             promptUser(); 
@@ -199,11 +203,62 @@ const addEmployee = () => {
 }
     
 const updateRole = () => {
-    // add function to UPDATE 
-        // set
-            // column name
-        // WHERE
-            // condition 
-    }
+    db.query(`SELECT CONCAT(employees.first_name, " ", employees.last_name) AS Employee_Name FROM employees;`,
+        function (err, res) {
+            if (err) 
+            throw err;
+            // loop to go through names and push to array for selection
+            for (let i = 0; i < res.length; i++) {
+                let name = res[i].Employee_Name;
+                names.push(name);
+            }
 
+            inquirer.prompt([
+                {
+                    type: "list",
+                    name: "selectedEmp",
+                    message: "Which employee's role would you like to update?",
+                    choices: names
+                }
+            ])
+            .then((res) => {
+                let employee = res.selectedEmp;
+
+                db.query(`SELECT role_table.title AS Role_Title FROM role_table`,
+                    function (err, res) {
+                        if (err)
+                        throw err;
+                        // loop to go through rolls and push to array for selection 
+                        for (let i = 0; i < res.length; i++) {
+                            let role = res[i].Role_Title;
+                            roles.push(role);
+                    }
+
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "roleUpdate",
+                        message: "What is the new role for this employee?",
+                        choices: roles
+                    }
+                ])
+
+                .then((res) => {
+                    let roleName = res.roleUpdate;
+                    console.log('selected role:', roleName);
+                    db.query(`UPDATE employees SET ? WHERE CONCAT(employees.first_name,' ', employees.last_name) = '${employee}'; `,
+                    {
+                        role_id: roles.indexOf(roleName) + 1
+                    },
+
+                    (err, res) => {
+                        if (err) throw err;
+                        console.log(`Employee role updated!`);
+                        promptUser();
+                    });
+                });
+            });
+        });
+    });
+}
 
