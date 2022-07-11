@@ -1,4 +1,4 @@
- USE moEnterprise;
+USE moEnterprise;
  
 INSERT INTO department
     (dep_name)

@@ -1,4 +1,3 @@
-
 const mysql = require("mysql2");
 const table = require("console.table");
 const inquirer = require ("inquirer");
@@ -6,11 +5,11 @@ const { tmpNameSync } = require("tmp");
 //name and roles for update employee
 const names = [];
 const roles = [];
-equire("dotenv").config()
+require("dotenv").config();
 
 const db = mysql.createConnection({
     host: 'localhost',
-    port: '3001',
+    port: '3306',
     user: process.env.DB_USER,
     password: process.env.DB_PW,
     database: process.env.DB_NAME,
@@ -32,10 +31,9 @@ const promptUser = () => {
                 "View all departments",
                 "View all roles",
                 "View all employees",
-                "View all employees by manager",
                 "Add a department",
                 "Add an employee",
-                "Add Role",
+                "Add role",
                 "Update an employee role",
                 "Quit",
             ],
@@ -51,7 +49,7 @@ const promptUser = () => {
                 viewAllRoles()
                 break;
             case "View all employees":
-                vieAllEmployees()
+                viewAllEmployees()
                 break;
             case "Add a department":
                 addDepartment()
@@ -221,44 +219,44 @@ const updateRole = () => {
                     choices: names
                 }
             ])
+        .then((res) => {
+            let employee = res.selectedEmp;
+
+            db.query(`SELECT role_table.title AS Role_Title FROM role_table`,
+                function (err, res) {
+                    if (err)
+                    throw err;
+                    // loop to go through rolls and push to array for selection 
+                    for (let i = 0; i < res.length; i++) {
+                        let role = res[i].Role_Title;
+                        roles.push(role);
+                }
+
+            inquirer.prompt([
+                {
+                    type: "list",
+                    name: "roleUpdate",
+                    message: "What is the new role for this employee?",
+                    choices: roles
+                }
+            ])
+
             .then((res) => {
-                let employee = res.selectedEmp;
+                let roleName = res.roleUpdate;
+                console.log('selected role:', roleName);
+                db.query(`UPDATE employees SET ? WHERE CONCAT(employees.first_name,' ', employees.last_name) = '${employee}'; `,
+                {
+                    role_id: roles.indexOf(roleName) + 1
+                },
 
-                db.query(`SELECT role_table.title AS Role_Title FROM role_table`,
-                    function (err, res) {
-                        if (err)
-                        throw err;
-                        // loop to go through rolls and push to array for selection 
-                        for (let i = 0; i < res.length; i++) {
-                            let role = res[i].Role_Title;
-                            roles.push(role);
-                    }
-
-                inquirer.prompt([
-                    {
-                        type: "list",
-                        name: "roleUpdate",
-                        message: "What is the new role for this employee?",
-                        choices: roles
-                    }
-                ])
-
-                .then((res) => {
-                    let roleName = res.roleUpdate;
-                    console.log('selected role:', roleName);
-                    db.query(`UPDATE employees SET ? WHERE CONCAT(employees.first_name,' ', employees.last_name) = '${employee}'; `,
-                    {
-                        role_id: roles.indexOf(roleName) + 1
-                    },
-
-                    (err, res) => {
-                        if (err) throw err;
-                        console.log(`Employee role updated!`);
-                        promptUser();
-                    });
+                (err, res) => {
+                    if (err) throw err;
+                    console.log(`Employee role updated!`);
+                    promptUser();
                 });
             });
         });
     });
+});
 }
 
